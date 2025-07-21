@@ -1,9 +1,9 @@
 export default {
   testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.js'],
-  moduleNameMapping: {
+  moduleNameMapper: {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
-    '\\.(gif|ttf|eot|svg|png)$': '<rootDir>/src/__mocks__/fileMock.js'
+    '\\.(gif|ttf|eot|svg|png|jpg|jpeg|webp|ico)$': '<rootDir>/src/__mocks__/fileMock.js'
   },
   transform: {
     '^.+\\.(js|jsx)$': 'babel-jest'
@@ -18,5 +18,11 @@ export default {
     '!src/**/*.d.ts'
   ],
   coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html']
+  coverageReporters: ['text', 'lcov', 'html'],
+  extensionsToTreatAsEsm: ['.jsx'],
+  globals: {
+    'ts-jest': {
+      useESM: true
+    }
+  }
 };
