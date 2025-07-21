@@ -34,8 +34,9 @@ jobs:
 
       - name: Run go test with coverage (sub-packages only)
         run: |
-          packages=$(go list ./... | grep -vE '^github.com/.+/[^/]+$')
-          go test -coverprofile=coverage.out $packages
+          packages=$(go list ./... | grep -v '^github.com/jesee-kuya/blue$')
+          go test -coverprofile=coverage.out -covermode=atomic $packages
+
 
 
       - name: Check backend coverage threshold
