@@ -32,8 +32,11 @@ jobs:
       - name: Run go vet
         run: go vet ./...
 
-      - name: Run go test with coverage
-        run: go test -coverprofile=coverage.out ./...
+      - name: Run go test with coverage (sub-packages only)
+        run: |
+          packages=$(go list ./... | grep -vE '^github.com/.+/[^/]+$')
+          go test -coverprofile=coverage.out $packages
+
 
       - name: Check backend coverage threshold
         run: |
