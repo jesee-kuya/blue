@@ -11,9 +11,9 @@ func HealthCheck(c *gin.Context) {
 }
 
 func SearchHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "pong"})
+	c.JSON(http.StatusOK, gin.H{})
 }
 
 func MarketingHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "pong"})
+	c.JSON(http.StatusOK, gin.H{})
 }
