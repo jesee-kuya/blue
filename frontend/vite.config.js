@@ -5,9 +5,12 @@ import { configDefaults } from 'vitest/config'
 export default defineConfig({
   plugins: [react()],
   test: {
+    environment: 'jsdom',
+    globals: true,
     exclude: [...configDefaults.exclude],
+    setupFiles: ['./src/setupTests.js'],
     coverage: {
-      reporter: ['json-summary', 'text', 'lcov'], // JSON summary is needed
+      reporter: ['json-summary', 'text', 'lcov'],
     },
   },
 })
