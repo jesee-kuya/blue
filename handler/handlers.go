@@ -6,16 +6,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func HealthCheck(gin.HandlerFunc) {
-	return func(c *gin.Context) {
-		c.Status(http.StatusOK)
-	}
+func HealthCheck(c *gin.Context) {
+	c.Status(http.StatusOK)
 }
 
-func SearchHandler(gin.HandlerFunc ){
+func SearchHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "pong"})
 }
 
-func MarketingHandler(gin.HandlerFunc) {
+func MarketingHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "pong"})
 }
