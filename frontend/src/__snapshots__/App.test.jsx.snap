@@ -1,0 +1,51 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`App Component matches snapshot 1`] = `
+<div>
+  <a
+    href="https://vite.dev"
+    target="_blank"
+  >
+    <img
+      alt="Vite logo"
+      class="logo"
+      src="test-file-stub"
+    />
+  </a>
+  <a
+    href="https://react.dev"
+    target="_blank"
+  >
+    <img
+      alt="React logo"
+      class="logo react"
+      src="test-file-stub"
+    />
+  </a>
+</div>
+`;
+
+exports[`App Component matches snapshot after state change 1`] = `
+<div>
+  <a
+    href="https://vite.dev"
+    target="_blank"
+  >
+    <img
+      alt="Vite logo"
+      class="logo"
+      src="test-file-stub"
+    />
+  </a>
+  <a
+    href="https://react.dev"
+    target="_blank"
+  >
+    <img
+      alt="React logo"
+      class="logo react"
+      src="test-file-stub"
+    />
+  </a>
+</div>
+`;
