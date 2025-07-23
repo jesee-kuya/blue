@@ -1,107 +1,107 @@
 package ebay
 
 import (
-    "encoding/json"
-    "fmt"
-    "io"
-    "net/http"
-    "net/url"
-    "strconv"
-    "time"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"strconv"
+	"time"
 
-    "github.com/jesee-kuya/blue/internal/marketplace"
+	"github.com/jesee-kuya/blue/internal/marketplace"
 )
 
 // Client represents an eBay API client
 type Client struct {
-    apiKey     string
-    baseURL    string
-    httpClient *http.Client
+	apiKey     string
+	baseURL    string
+	httpClient *http.Client
 }
 
 // NewClient creates a new eBay client
 func NewClient(apiKey string) *Client {
-    return &Client{
-        apiKey:  apiKey,
-        baseURL: "https://api.ebay.com/buy/browse/v1",
-        httpClient: &http.Client{
-            Timeout: 30 * time.Second,
-        },
-    }
+	return &Client{
+		apiKey:  apiKey,
+		baseURL: "https://api.ebay.com/buy/browse/v1",
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+		},
+	}
 }
 
 // eBayResponse represents the response structure from eBay Browse API
 type eBayResponse struct {
-    ItemSummaries []struct {
-        Title string `json:"title"`
-        Price struct {
-            Value    string `json:"value"`
-            Currency string `json:"currency"`
-        } `json:"price"`
-        ItemWebURL string `json:"itemWebUrl"`
-    } `json:"itemSummaries"`
+	ItemSummaries []struct {
+		Title string `json:"title"`
+		Price struct {
+			Value    string `json:"value"`
+			Currency string `json:"currency"`
+		} `json:"price"`
+		ItemWebURL string `json:"itemWebUrl"`
+	} `json:"itemSummaries"`
 }
 
 // Search searches for products on eBay using the Browse API
 func (c *Client) Search(query string, minPrice, maxPrice float64) ([]marketplace.Product, error) {
-    // Build query parameters
-    params := url.Values{}
-    params.Set("q", query)
-    params.Set("limit", "50")
-    
-    if minPrice > 0 {
-        params.Set("filter", fmt.Sprintf("price:[%s..%s],priceCurrency:USD", 
-            strconv.FormatFloat(minPrice, 'f', 2, 64),
-            strconv.FormatFloat(maxPrice, 'f', 2, 64)))
-    }
+	// Build query parameters
+	params := url.Values{}
+	params.Set("q", query)
+	params.Set("limit", "50")
 
-    // Create request
-    reqURL := fmt.Sprintf("%s/item_summary/search?%s", c.baseURL, params.Encode())
-    req, err := http.NewRequest("GET", reqURL, nil)
-    if err != nil {
-        return nil, fmt.Errorf("failed to create request: %w", err)
-    }
+	if minPrice > 0 {
+		params.Set("filter", fmt.Sprintf("price:[%s..%s],priceCurrency:USD",
+			strconv.FormatFloat(minPrice, 'f', 2, 64),
+			strconv.FormatFloat(maxPrice, 'f', 2, 64)))
+	}
 
-    // Set headers
-    req.Header.Set("Authorization", "Bearer "+c.apiKey)
-    req.Header.Set("Content-Type", "application/json")
+	// Create request
+	reqURL := fmt.Sprintf("%s/item_summary/search?%s", c.baseURL, params.Encode())
+	req, err := http.NewRequest("GET", reqURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
 
-    // Make request
-    resp, err := c.httpClient.Do(req)
-    if err != nil {
-        return nil, fmt.Errorf("failed to make request: %w", err)
-    }
-    defer resp.Body.Close()
+	// Set headers
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	req.Header.Set("Content-Type", "application/json")
 
-    if resp.StatusCode != http.StatusOK {
-        return nil, fmt.Errorf("eBay API returned status %d", resp.StatusCode)
-    }
+	// Make request
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
 
-    // Parse response
-    body, err := io.ReadAll(resp.Body)
-    if err != nil {
-        return nil, fmt.Errorf("failed to read response: %w", err)
-    }
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("eBay API returned status %d", resp.StatusCode)
+	}
 
-    var ebayResp eBayResponse
-    if err := json.Unmarshal(body, &ebayResp); err != nil {
-        return nil, fmt.Errorf("failed to parse response: %w", err)
-    }
+	// Parse response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
 
-    // Convert to standard format
-    products := make([]marketplace.Product, 0, len(ebayResp.ItemSummaries))
-    for _, item := range ebayResp.ItemSummaries {
-        price, err := strconv.ParseFloat(item.Price.Value, 64)
-        if err != nil {
-            continue // Skip items with invalid prices
-        }
+	var ebayResp eBayResponse
+	if err := json.Unmarshal(body, &ebayResp); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
 
-        products = append(products, marketplace.Product{
-            Title: item.Title,
-            Price: price,
-            Link:  item.ItemWebURL,
-        })
-    }
+	// Convert to standard format
+	products := make([]marketplace.Product, 0, len(ebayResp.ItemSummaries))
+	for _, item := range ebayResp.ItemSummaries {
+		price, err := strconv.ParseFloat(item.Price.Value, 64)
+		if err != nil {
+			continue // Skip items with invalid prices
+		}
 
-    return products, nil
+		products = append(products, marketplace.Product{
+			Title: item.Title,
+			Price: price,
+			Link:  item.ItemWebURL,
+		})
+	}
+
+	return products, nil
 }
