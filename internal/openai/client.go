@@ -234,7 +234,7 @@ func (c *Client) generateAdCopyTemplate(productTitle string, segments []string) 
 func (c *Client) ProcessMessageWithTimeout(message string, timeout time.Duration) (*OrchestratorResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	
+
 	return c.ProcessMessage(ctx, message)
 }
 
