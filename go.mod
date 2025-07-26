@@ -4,6 +4,7 @@ go 1.24.3
 
 require (
 	github.com/gin-gonic/gin v1.10.1
+	github.com/sashabaranov/go-openai v1.40.5
 	github.com/stretchr/testify v1.9.0
 )
 
