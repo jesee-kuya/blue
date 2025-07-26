@@ -229,3 +229,16 @@ func (c *Client) generateAdCopyTemplate(productTitle string, segments []string) 
 		CallToAction: callToAction,
 	}
 }
+
+// ProcessMessageWithTimeout processes a user message with orchestration and timeout
+func (c *Client) ProcessMessageWithTimeout(message string, timeout time.Duration) (*OrchestratorResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	
+	return c.ProcessMessage(ctx, message)
+}
+
+// ProcessMessageSimple provides a simple interface for message processing
+func (c *Client) ProcessMessageSimple(message string) (*OrchestratorResponse, error) {
+	return c.ProcessMessageWithTimeout(message, c.Timeout)
+}
