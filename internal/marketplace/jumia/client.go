@@ -1,75 +1,87 @@
 package jumia
 
 import (
+	"crypto/md5"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
-	"regexp"
-	"strconv"
+	"math/rand"
 	"strings"
 	"time"
 
+	"github.com/jesee-kuya/blue/internal/cache"
 	"github.com/jesee-kuya/blue/internal/marketplace"
 )
 
-// Client represents a Jumia web scraping client
+// Client represents a Jumia API client
 type Client struct {
-	baseURL    string
-	httpClient *http.Client
+	apiKey      string
+	baseURL     string
+	mockMode    bool
+	redisClient *cache.RedisClient
 }
 
 // NewClient creates a new Jumia client
-func NewClient() *Client {
+func NewClient(apiKey string) *Client {
 	return &Client{
-		baseURL: "https://www.jumia.com.ng",
-		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
-		},
+		apiKey:      apiKey,
+		baseURL:     "https://api.jumia.com/v1",
+		mockMode:    true, // Mock mode for now
+		redisClient: cache.NewRedisClient(),
 	}
 }
 
-// Search searches for products on Jumia using web scraping
+// Search searches for products on Jumia with Redis caching
 func (c *Client) Search(query string, minPrice, maxPrice float64) ([]marketplace.Product, error) {
-	// Build search URL
-	searchURL := fmt.Sprintf("%s/catalog/?q=%s", c.baseURL, url.QueryEscape(query))
-
-	// Create request
-	req, err := http.NewRequest("GET", searchURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+	// Generate cache key
+	cacheKey := c.generateCacheKey(query, minPrice, maxPrice)
+	
+	// Try to get from cache first
+	var cachedProducts []marketplace.Product
+	if err := c.redisClient.Get(cacheKey, &cachedProducts); err == nil {
+		return cachedProducts, nil
 	}
 
-	// Set headers to mimic browser
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-
-	// Make request
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Jumia returned status %d", resp.StatusCode)
+	// Cache miss - fetch fresh data
+	var products []marketplace.Product
+	var err error
+	
+	if c.mockMode {
+		products, err = c.mockSearch(query, minPrice, maxPrice)
+	} else {
+		return nil, fmt.Errorf("jumia API integration not yet implemented")
 	}
 
-	// Read response
-	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
+		return nil, err
 	}
 
-	// Parse HTML and extract products
-	products, err := c.parseProducts(string(body))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse products: %w", err)
+	// Cache the results for 10 minutes
+	c.redisClient.SetWithTTL(cacheKey, products, 10*time.Minute)
+	
+	return products, nil
+}
+
+// mockSearch provides mock data for testing and development
+func (c *Client) mockSearch(query string, minPrice, maxPrice float64) ([]marketplace.Product, error) {
+	// Simulate API delay
+	time.Sleep(100 * time.Millisecond)
+
+	// Generate mock products based on query
+	mockProducts := []marketplace.Product{
+		{
+			Title: fmt.Sprintf("Jumia Deal: %s - Best Price", strings.Title(query)),
+			Price: generatePrice(minPrice, maxPrice, 25.99),
+			Link:  "https://jumia.com/product/12345",
+		},
+		{
+			Title: fmt.Sprintf("Popular %s - Fast Delivery", strings.Title(query)),
+			Price: generatePrice(minPrice, maxPrice, 35.99),
+			Link:  "https://jumia.com/product/67890",
+		},
 	}
 
 	// Filter by price range
 	var filteredProducts []marketplace.Product
-	for _, product := range products {
+	for _, product := range mockProducts {
 		if (minPrice == 0 || product.Price >= minPrice) &&
 			(maxPrice == 0 || product.Price <= maxPrice) {
 			filteredProducts = append(filteredProducts, product)
@@ -79,52 +91,17 @@ func (c *Client) Search(query string, minPrice, maxPrice float64) ([]marketplace
 	return filteredProducts, nil
 }
 
-// parseProducts extracts product information from HTML
-func (c *Client) parseProducts(html string) ([]marketplace.Product, error) {
-	var products []marketplace.Product
-
-	// Regex patterns for extracting product data
-	titlePattern := regexp.MustCompile(`<h3[^>]*class="[^"]*name[^"]*"[^>]*>([^<]+)</h3>`)
-	pricePattern := regexp.MustCompile(`<div[^>]*class="[^"]*prc[^"]*"[^>]*>.*?₦\s*([0-9,]+)`)
-	linkPattern := regexp.MustCompile(`<a[^>]*href="([^"]*)"[^>]*class="[^"]*core[^"]*"`)
-
-	// Extract titles
-	titleMatches := titlePattern.FindAllStringSubmatch(html, -1)
-
-	// Extract prices
-	priceMatches := pricePattern.FindAllStringSubmatch(html, -1)
-
-	// Extract links
-	linkMatches := linkPattern.FindAllStringSubmatch(html, -1)
-
-	// Combine extracted data
-	maxItems := len(titleMatches)
-	if len(priceMatches) < maxItems {
-		maxItems = len(priceMatches)
+// generatePrice creates a realistic price within the given range
+func generatePrice(minPrice, maxPrice, defaultPrice float64) float64 {
+	if minPrice > 0 && maxPrice > 0 {
+		return minPrice + rand.Float64()*(maxPrice-minPrice)
 	}
-	if len(linkMatches) < maxItems {
-		maxItems = len(linkMatches)
-	}
+	return defaultPrice + rand.Float64()*20 - 10 // ±10 variation
+}
 
-	for i := 0; i < maxItems; i++ {
-		title := strings.TrimSpace(titleMatches[i][1])
-		priceStr := strings.ReplaceAll(priceMatches[i][1], ",", "")
-		price, err := strconv.ParseFloat(priceStr, 64)
-		if err != nil {
-			continue // Skip items with invalid prices
-		}
-
-		link := linkMatches[i][1]
-		if !strings.HasPrefix(link, "http") {
-			link = c.baseURL + link
-		}
-
-		products = append(products, marketplace.Product{
-			Title: title,
-			Price: price,
-			Link:  link,
-		})
-	}
-
-	return products, nil
+// generateCacheKey creates a cache key for the search parameters
+func (c *Client) generateCacheKey(query string, minPrice, maxPrice float64) string {
+	data := fmt.Sprintf("%s:%.2f:%.2f", query, minPrice, maxPrice)
+	hash := fmt.Sprintf("%x", md5.Sum([]byte(data)))
+	return fmt.Sprintf("marketplace:search:jumia:%s:%.2f:%.2f", hash, minPrice, maxPrice)
 }

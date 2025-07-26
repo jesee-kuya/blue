@@ -32,18 +32,6 @@ func NewClient(apiKey string) *Client {
 	}
 }
 
-// eBayResponse represents the response structure from eBay Browse API
-type eBayResponse struct {
-	ItemSummaries []struct {
-		Title string `json:"title"`
-		Price struct {
-			Value    string `json:"value"`
-			Currency string `json:"currency"`
-		} `json:"price"`
-		ItemWebURL string `json:"itemWebUrl"`
-	} `json:"itemSummaries"`
-}
-
 // Search searches for products on eBay with Redis caching
 func (c *Client) Search(query string, minPrice, maxPrice float64) ([]marketplace.Product, error) {
 	// Generate cache key

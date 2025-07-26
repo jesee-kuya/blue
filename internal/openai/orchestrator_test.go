@@ -14,13 +14,6 @@ type MockClient struct {
 	mockExecuteFunc func(FunctionCall) (any, error)
 }
 
-func (m *MockClient) ExecuteFunctionCall(fc FunctionCall) (any, error) {
-	if m.mockExecuteFunc != nil {
-		return m.mockExecuteFunc(fc)
-	}
-	return m.Client.ExecuteFunctionCall(fc)
-}
-
 func TestClassifyIntent_SearchIntent(t *testing.T) {
 	client := NewClientWithKey("test-key")
 

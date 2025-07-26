@@ -10,6 +10,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+
+// ExecuteFunctionCall overrides the real implementation for testing
+func (m *MockClient) ExecuteFunctionCall(fc FunctionCall) (any, error) {
+	if m.mockExecuteFunc != nil {
+		return m.mockExecuteFunc(fc)
+	}
+	return m.Client.ExecuteFunctionCall(fc)
+}
+
+// executeWithRetry overrides the retry logic for testing
+func (m *MockClient) executeWithRetry(ctx context.Context, fc FunctionCall) (any, error) {
+	return m.ExecuteFunctionCall(fc)
+}
+
 func TestConvertSearchResults_EmptyResults(t *testing.T) {
 	client := NewClientWithKey("test-key")
 

@@ -43,8 +43,7 @@ func TestQlooClient_GetTasteProfile_Success(t *testing.T) {
 	defer server.Close()
 
 	// Create client with test server URL
-	client := NewClient()
-	client.baseURL = server.URL
+	client := NewClientWithConfig("test-api-key", server.URL)
 
 	// Test GetTasteProfile
 	segments, err := client.GetTasteProfile("High-performance gaming laptop with RGB lighting")

@@ -40,15 +40,15 @@ func NewClient() *Client {
 	}
 }
 
-// NewClientWithKey creates a new OpenAI client with a specific API key
+// NewClientWithKey creates a new OpenAI client with a specific API key (for testing)
 func NewClientWithKey(apiKey string) *Client {
 	openaiClient := openai.NewClient(apiKey)
 
 	return &Client{
 		OpenaiClient: openaiClient,
 		Model:        "gpt-4o",
-		AmazonClient: amazon.NewClient("", "", "us-east-1"),
-		EbayClient:   ebay.NewClient(""),
+		AmazonClient: amazon.NewClient("", "", "us-east-1"), // Mock credentials for now
+		EbayClient:   ebay.NewClient(""),                    // Mock credentials for now
 		QlooClient:   qloo.NewClient(),
 		Timeout:      30 * time.Second,
 	}

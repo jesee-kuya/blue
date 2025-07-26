@@ -32,6 +32,16 @@ func NewClient() *Client {
 	}
 }
 
+// NewClientWithConfig creates a new Qloo client with custom configuration (for testing)
+func NewClientWithConfig(apiKey, baseURL string) *Client {
+	return &Client{
+		apiKey:      apiKey,
+		baseURL:     baseURL,
+		httpClient:  &http.Client{Timeout: 30 * time.Second},
+		redisClient: cache.NewRedisClient(),
+	}
+}
+
 // GetTasteProfile analyzes a product description with Redis caching
 func (c *Client) GetTasteProfile(description string) ([]Segment, error) {
 	if c.apiKey == "" {
