@@ -43,7 +43,7 @@ func TestQlooClient_GetTasteProfile_Success(t *testing.T) {
 	defer server.Close()
 
 	// Create client with test server URL
-	client := NewClientWithKey("test-api-key")
+	client := NewClient()
 	client.baseURL = server.URL
 
 	// Test GetTasteProfile
@@ -58,7 +58,7 @@ func TestQlooClient_GetTasteProfile_Success(t *testing.T) {
 }
 
 func TestQlooClient_GetTasteProfile_EmptyDescription(t *testing.T) {
-	client := NewClientWithKey("test-api-key")
+	client := NewClient()
 
 	segments, err := client.GetTasteProfile("")
 
@@ -67,7 +67,7 @@ func TestQlooClient_GetTasteProfile_EmptyDescription(t *testing.T) {
 }
 
 func TestQlooClient_GetTasteProfile_NoAPIKey(t *testing.T) {
-	client := NewClientWithKey("")
+	client := NewClient()
 
 	segments, err := client.GetTasteProfile("test description")
 
@@ -84,7 +84,7 @@ func TestQlooClient_GetTasteProfile_APIError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClientWithKey("invalid-key")
+	client := NewClient()
 	client.baseURL = server.URL
 
 	segments, err := client.GetTasteProfile("test description")
@@ -103,7 +103,7 @@ func TestQlooClient_GetTasteProfile_InvalidJSON(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClientWithKey("test-api-key")
+	client := NewClient()
 	client.baseURL = server.URL
 
 	segments, err := client.GetTasteProfile("test description")
@@ -128,7 +128,7 @@ func TestQlooClient_GetTasteProfile_APILevelError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClientWithKey("test-api-key")
+	client := NewClient()
 	client.baseURL = server.URL
 
 	segments, err := client.GetTasteProfile("short")
@@ -152,7 +152,7 @@ func TestQlooClient_GetTasteProfile_NoSegments(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClientWithKey("test-api-key")
+	client := NewClient()
 	client.baseURL = server.URL
 
 	segments, err := client.GetTasteProfile("generic product")
