@@ -44,7 +44,7 @@ func (c *Client) GetTasteProfile(description string) ([]Segment, error) {
 
 	// Generate cache key
 	cacheKey := c.generateCacheKey(description)
-	
+
 	// Try to get from cache first
 	var cachedSegments []Segment
 	if err := c.redisClient.Get(cacheKey, &cachedSegments); err == nil {
@@ -59,7 +59,7 @@ func (c *Client) GetTasteProfile(description string) ([]Segment, error) {
 
 	// Cache the results for 10 minutes
 	c.redisClient.SetWithTTL(cacheKey, segments, 10*time.Minute)
-	
+
 	return segments, nil
 }
 

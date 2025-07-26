@@ -48,7 +48,7 @@ type eBayResponse struct {
 func (c *Client) Search(query string, minPrice, maxPrice float64) ([]marketplace.Product, error) {
 	// Generate cache key
 	cacheKey := c.generateCacheKey(query, minPrice, maxPrice)
-	
+
 	// Try to get from cache first
 	var cachedProducts []marketplace.Product
 	if err := c.redisClient.Get(cacheKey, &cachedProducts); err == nil {
@@ -63,7 +63,7 @@ func (c *Client) Search(query string, minPrice, maxPrice float64) ([]marketplace
 
 	// Cache the results for 10 minutes
 	c.redisClient.SetWithTTL(cacheKey, products, 10*time.Minute)
-	
+
 	return products, nil
 }
 

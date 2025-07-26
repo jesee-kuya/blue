@@ -1,70 +1,70 @@
 package middleware
 
 import (
-    "fmt"
-    "net/http"
-    "strconv"
-    "time"
+	"fmt"
+	"net/http"
+	"strconv"
+	"time"
 
-    "github.com/gin-gonic/gin"
-    "github.com/jesee-kuya/blue/internal/cache"
+	"github.com/gin-gonic/gin"
+	"github.com/jesee-kuya/blue/internal/cache"
 )
 
 const (
-    RateLimitMax     = 100
-    RateLimitWindow  = time.Minute
-    RateLimitPrefix  = "ratelimit:"
+	RateLimitMax    = 100
+	RateLimitWindow = time.Minute
+	RateLimitPrefix = "ratelimit:"
 )
 
 // RateLimitMiddleware creates a rate limiting middleware using Redis
 func RateLimitMiddleware(redisClient *cache.RedisClient) gin.HandlerFunc {
-    return func(c *gin.Context) {
-        clientIP := c.ClientIP()
-        key := fmt.Sprintf("%s%s", RateLimitPrefix, clientIP)
-        
-        // Get current timestamp for rate limit window
-        now := time.Now()
-        windowStart := now.Truncate(RateLimitWindow).Unix()
-        rateLimitKey := fmt.Sprintf("%s:%d", key, windowStart)
+	return func(c *gin.Context) {
+		clientIP := c.ClientIP()
+		key := fmt.Sprintf("%s%s", RateLimitPrefix, clientIP)
 
-        // Increment counter for this IP in current window
-        count, err := redisClient.Incr(rateLimitKey)
-        if err != nil {
-            // If Redis is down, allow the request but log error
-            c.Header("X-RateLimit-Limit", strconv.Itoa(RateLimitMax))
-            c.Header("X-RateLimit-Remaining", "0")
-            c.Header("X-RateLimit-Reset", strconv.FormatInt(windowStart+int64(RateLimitWindow.Seconds()), 10))
-            c.Next()
-            return
-        }
+		// Get current timestamp for rate limit window
+		now := time.Now()
+		windowStart := now.Truncate(RateLimitWindow).Unix()
+		rateLimitKey := fmt.Sprintf("%s:%d", key, windowStart)
 
-        // Set expiration on first increment
-        if count == 1 {
-            redisClient.Expire(rateLimitKey, RateLimitWindow)
-        }
+		// Increment counter for this IP in current window
+		count, err := redisClient.Incr(rateLimitKey)
+		if err != nil {
+			// If Redis is down, allow the request but log error
+			c.Header("X-RateLimit-Limit", strconv.Itoa(RateLimitMax))
+			c.Header("X-RateLimit-Remaining", "0")
+			c.Header("X-RateLimit-Reset", strconv.FormatInt(windowStart+int64(RateLimitWindow.Seconds()), 10))
+			c.Next()
+			return
+		}
 
-        // Calculate remaining requests and reset time
-        remaining := RateLimitMax - int(count)
-        if remaining < 0 {
-            remaining = 0
-        }
-        resetTime := windowStart + int64(RateLimitWindow.Seconds())
+		// Set expiration on first increment
+		if count == 1 {
+			redisClient.Expire(rateLimitKey, RateLimitWindow)
+		}
 
-        // Set rate limit headers
-        c.Header("X-RateLimit-Limit", strconv.Itoa(RateLimitMax))
-        c.Header("X-RateLimit-Remaining", strconv.Itoa(remaining))
-        c.Header("X-RateLimit-Reset", strconv.FormatInt(resetTime, 10))
+		// Calculate remaining requests and reset time
+		remaining := RateLimitMax - int(count)
+		if remaining < 0 {
+			remaining = 0
+		}
+		resetTime := windowStart + int64(RateLimitWindow.Seconds())
 
-        // Check if rate limit exceeded
-        if count > RateLimitMax {
-            c.JSON(http.StatusTooManyRequests, gin.H{
-                "error": "Rate limit exceeded",
-                "retry_after": int64(RateLimitWindow.Seconds()) - (now.Unix() - windowStart),
-            })
-            c.Abort()
-            return
-        }
+		// Set rate limit headers
+		c.Header("X-RateLimit-Limit", strconv.Itoa(RateLimitMax))
+		c.Header("X-RateLimit-Remaining", strconv.Itoa(remaining))
+		c.Header("X-RateLimit-Reset", strconv.FormatInt(resetTime, 10))
 
-        c.Next()
-    }
+		// Check if rate limit exceeded
+		if count > RateLimitMax {
+			c.JSON(http.StatusTooManyRequests, gin.H{
+				"error":       "Rate limit exceeded",
+				"retry_after": int64(RateLimitWindow.Seconds()) - (now.Unix() - windowStart),
+			})
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
 }
